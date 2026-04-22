@@ -1,6 +1,5 @@
-============================================================
 #      RMSD ANALYSIS & MOLECULAR ALIGNMENT TOOL
-============================================================
+
 
 This tool calculates the Root Mean Square Deviation (RMSD) between 
 molecular structures and generates aligned coordinates and overlay 
@@ -23,7 +22,7 @@ libraries using pip:
 ------------------------------------------------------------
 Your workspace should be organized as follows:
 
-Codigos/
+# Codigos/
 
     ├── ALL_CODES.py       <--  Main script
     ├── READ_ME.txt        <-- This documentation
@@ -43,9 +42,9 @@ be compared to a reference if its name starts with the reference
 name followed by a separator (_ or .) or the end of the string.
 
 Example:
-Reference: ORIGII.xyz
-Matched Structures: ORIGII_PM6.xyz, ORIGII.01.xyz
-Ignored Structures: ORIGII01.xyz (mismatch due to missing separator)
+Reference: [name].xyz
+Matched Structures: [name]_PM6.xyz, [name].01.xyz
+Ignored Structures: [name]01.xyz (mismatch due to missing separator)
 
 ------------------------------------------------------------
 4. HOW TO USE (Step-by-Step)
