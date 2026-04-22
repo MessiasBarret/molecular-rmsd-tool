@@ -24,15 +24,15 @@ libraries using pip:
 Your workspace should be organized as follows:
 
 Codigos/
-├── ALL_CODES.py           # Main script
-├── READ_ME.txt            # This documentation
-├── INPUT/                 # Data folder
-│   ├── referencias/       # (Option 1) Place your .xyz references here
-│   └── estruturas/        # (Option 1) Place your .xyz structures here
-└── OUTPUT/                # Results will be generated here
-    ├── RMSD.txt           # Main results report
-    ├── Alinhamentos/      # Optional aligned .xyz files
-    └── Imagens/           # Optional overlay .png images
+├── ALL_CODES.py       <--  Main script
+├── READ_ME.txt        <-- This documentation
+├── INPUT/             <-- Data folder
+│   ├── referencias/   <-- (Option 1) Place your .xyz references here
+│   └── estruturas/    <-- (Option 1) Place your .xyz structures here
+└── OUTPUT/            <-- Results will be generated here
+    ├── RMSD.txt       <-- Main results report
+    ├── Alinhamentos/  <-- Optional aligned .xyz files
+    └── Imagens/       <-- Optional overlay .png images
 
 ------------------------------------------------------------
 3. FILENAME CONVENTION
@@ -80,6 +80,6 @@ For issues or feedback, please check your input file formats
 (standard .xyz) and ensure all molecules in a comparison pair 
 have the SAME number of atoms.
 
-┏┓    ┓   
-┃┃┏┓┏┓┃┏┓
-┣┛┗┛┣┛┗┗  
+#┏┓    ┓   
+#┃┃┏┓┏┓┃┏┓
+#┣┛┗┛┣┛┗┗  
