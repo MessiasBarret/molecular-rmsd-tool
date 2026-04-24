@@ -5,7 +5,6 @@
     ┛ 
 """
 
-
 import vtk
 import glob
 import os
@@ -205,52 +204,82 @@ def select_items(items, title=""):
         return set()
 
 def main():
+    # Identifica o diretório onde o script .py está localizado
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
     print("=" * 60)
     print("      RMSD ANALYSIS & MOLECULAR ALIGNMENT TOOL")
     print("=" * 60)
-    
-    # PASSO 1: Configuração de entrada
-    print("\n[STEP 1] INPUT CONFIGURATION")
-    print("1 - Use subfolders (INPUT/referencias and INPUT/estruturas)")
-    print("2 - Use reference files (.ref) and structures (.xyz) in root/INPUT")
-    input_choice = input("\nSelect option (1 or 2): ").strip()
-    
-    dir_input = "INPUT"
+    print(f"[PATH] Running from: {base_dir}")
+
+    # Configuração de diretórios baseada na localização do script
+    dir_input = os.path.join(base_dir, "INPUT")
     dir_ref = os.path.join(dir_input, "referencias")
     dir_str = os.path.join(dir_input, "estruturas")
+    dir_out = os.path.join(base_dir, "OUTPUT")
+
+    # Criação automática da estrutura de pastas (Scaffolding)
+    folders_to_create = [dir_input, dir_ref, dir_str, dir_out]
+    created_folders = []
+    for d in folders_to_create:
+        if not os.path.exists(d):
+            os.makedirs(d)
+            created_folders.append(os.path.basename(d))
     
+    if created_folders:
+        print(f"\n[INFO] Folders created at script location: {', '.join(created_folders)}")
+
+    # PASSO 1: Configuração de entrada
+    print("\n[STEP 1] INPUT CONFIGURATION")
+    print(f"1 - Use subfolders (INPUT/referencias and INPUT/estruturas)")
+    print(f"2 - Use root of INPUT folder and script folder")
+    input_choice = input("\nSelect option (1 or 2) [Default=1]: ").strip() or '1'
+
     if input_choice == '1':
-        for d in [dir_ref, dir_str]:
-            if not os.path.exists(d): os.makedirs(d)
         print(f"\n[PAUSE] Place REFERENCES in: {dir_ref}")
         print(f"        Place STRUCTURES in : {dir_str}")
     else:
-        if not os.path.exists(dir_input): os.makedirs(dir_input)
-        print("\n[PAUSE] Place .ref and .xyz files in the root or 'INPUT' folder.")
+        print(f"\n[PAUSE] Place .ref and .xyz files in: {base_dir} or {dir_input}")
 
-    input("\nPress ENTER once files are ready...")
+    input("\nPress ENTER once files are ready to process...")
 
-    # Coleta de arquivos baseada na escolha do usuário
+    # Coleta de arquivos baseada na escolha do usuário (mais flexível com extensões)
+    extensions = ("*.xyz", "*.ref")
+    ref_files = []
+    str_files = []
+
     if input_choice == '1':
-        ref_files = glob.glob(os.path.join(dir_ref, "*.xyz"))
-        str_files = glob.glob(os.path.join(dir_str, "*.xyz"))
+        for ext in extensions:
+            ref_files.extend(glob.glob(os.path.join(dir_ref, ext)))
+            str_files.extend(glob.glob(os.path.join(dir_str, ext)))
     else:
-        ref_files = glob.glob("*.ref") + glob.glob(os.path.join(dir_input, "*.ref"))
-        str_files = glob.glob("*.xyz") + glob.glob(os.path.join(dir_input, "*.xyz"))
+        for ext in extensions:
+            # Busca na pasta do script e na pasta INPUT
+            ref_files.extend(glob.glob(os.path.join(base_dir, ext)))
+            ref_files.extend(glob.glob(os.path.join(dir_input, ext)))
+            str_files.extend(glob.glob(os.path.join(base_dir, ext)))
+            str_files.extend(glob.glob(os.path.join(dir_input, ext)))
 
+    # Remove duplicatas e converte para caminhos absolutos
     ref_files = list(dict.fromkeys([os.path.abspath(f) for f in ref_files]))
     str_files = list(dict.fromkeys([os.path.abspath(f) for f in str_files]))
-    
-    # Identifica os pares de comparação usando Regex para evitar sobreposições
+
+    # Identifica os pares de comparação usando o prefixo antes do primeiro '_'
     comparisons_list = [] # Lista de tuplas (caminho_ref, caminho_str, rótulo)
     for r_path in ref_files:
-        r_name = os.path.basename(r_path).replace(".ref", "").replace(".xyz", "")
-        # Regex: deve começar com r_name seguido de separador (_ ou .) ou fim da string
-        pattern = re.compile(rf"^{re.escape(r_name)}([._]|$)")
+        r_base = os.path.basename(r_path)
+        # Extrai o prefixo (tudo antes do primeiro '_' ou '.')
+        r_prefix = re.split(r'[_.]', r_base)[0]
+        
         for s_path in str_files:
             if s_path == r_path: continue
-            if pattern.search(os.path.basename(s_path)):
-                label = f"{os.path.basename(s_path)} vs {r_name}"
+            s_base = os.path.basename(s_path)
+            # Extrai o prefixo da estrutura da mesma forma
+            s_prefix = re.split(r'[_.]', s_base)[0]
+            
+            # Se os prefixos forem iguais, temos um par para comparação
+            if r_prefix.lower() == s_prefix.lower():
+                label = f"{s_base} vs {r_base}"
                 comparisons_list.append((r_path, s_path, label))
 
     # PASSO 2: Estatísticas de identificação
@@ -285,11 +314,13 @@ def main():
             selected_png = select_items(labels, "SELECT STRUCTURES FOR IMAGES")
 
     # Cria diretórios de saída se necessário
-    out_dir = "OUTPUT"
-    out_aligned = os.path.join(out_dir, "Alinhamentos")
-    out_images = os.path.join(out_dir, "Imagens")
-    for d in [out_dir, out_aligned if save_aligned else None, out_images if save_images else None]:
-        if d and not os.path.exists(d): os.makedirs(d)
+    out_aligned = os.path.join(dir_out, "Alinhamentos")
+    out_images = os.path.join(dir_out, "Imagens")
+    
+    # Garante a existência de todas as pastas de saída antes de processar
+    for d in [dir_out, out_aligned if save_aligned else None, out_images if save_images else None]:
+        if d and not os.path.exists(d):
+            os.makedirs(d, exist_ok=True)
 
     # Inicializa o motor VTK se imagens forem solicitadas
     renderer = None; renderWin = None
@@ -325,19 +356,22 @@ def main():
             P_c = P_fit - centroid(P_fit); Q_c = Q - centroid(Q); P_final = rotate(P_c, Q_c)
             
             if do_xyz:
-                print(f"    - Saving aligned XYZ...")
                 # Reposiciona na origem da referência para contexto
                 P_output = P_final + centroid(Q)
-                out_path = os.path.join(out_aligned, f"{os.path.splitext(os.path.basename(s_path))[0]}_aligned.xyz")
+                fname_xyz = f"{os.path.splitext(os.path.basename(s_path))[0]}_aligned.xyz"
+                out_path = os.path.join(out_aligned, fname_xyz)
+                print(f"    - Saving aligned XYZ: {fname_xyz}")
                 write_coordinates(out_path, atomsP, P_output)
 
             if do_png:
-                print(f"    - Saving image...")
+                fname_png = f"{os.path.splitext(os.path.basename(s_path))[0]}.png"
+                png_path = os.path.join(out_images, fname_png)
+                print(f"    - Saving image: {fname_png}")
                 act_ref = set_molecule_actor(atomsQ, Q_c, (1.0, 0.0, 0.0)) # Referência = Vermelho
                 act_str = set_molecule_actor(atomsP, P_final, (0.0, 1.0, 0.0)) # Estrutura = Verde
                 renderer.AddActor(act_ref); renderer.AddActor(act_str)
                 renderer.ResetCamera(); renderWin.Render()
-                png_path = os.path.join(out_images, f"{os.path.splitext(os.path.basename(s_path))[0]}.png")
+                
                 rl = vtk.vtkRenderLargeImage(); rl.SetInput(renderer); rl.SetMagnification(2)
                 w = vtk.vtkPNGWriter(); w.SetInputConnection(rl.GetOutputPort()); w.SetFileName(png_path); w.Write()
                 process_image(png_path, fit_r)
@@ -345,13 +379,15 @@ def main():
 
         results.append((os.path.basename(s_path), norm_r, kabs_r, fit_r))
 
-    # Gravação do Relatório Final de RMSD
-    report_path = os.path.join(out_dir, "RMSD.txt")
-    with open(report_path, "w") as f:
-        f.write(f"{'Molecule':<35} {'Normal':>12} {'Kabsch':>12} {'Fitted':>12}\n" + "-" * 75 + "\n")
-        for r in results: f.write(f"{r[0]:<35} {r[1]:>12.4f} {r[2]:>12.4f} {r[3]:>12.4f}\n")
-    
-    print(f"\n{'='*60}\nSUCCESS! Report: {report_path}\n{'='*60}")
+    # Gravação do Relatório Final de RMSD dentro da pasta OUTPUT
+    report_path = os.path.join(dir_out, "RMSD.txt")
+    try:
+        with open(report_path, "w") as f:
+            f.write(f"{'Molecule':<35} {'Normal':>12} {'Kabsch':>12} {'Fitted':>12}\n" + "-" * 75 + "\n")
+            for r in results: f.write(f"{r[0]:<35} {r[1]:>12.4f} {r[2]:>12.4f} {r[3]:>12.4f}\n")
+        print(f"\n{'='*60}\nSUCCESS! Report generated at: {report_path}\n{'='*60}")
+    except Exception as e:
+        print(f"\n[ERROR] Failed to write report: {e}")
 
 if __name__ == "__main__":
     main()
